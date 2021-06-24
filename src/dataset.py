@@ -16,12 +16,12 @@ def data_process(
 ):
     de_pad = de_vocab["<pad>"]
     en_pad = en_vocab["<pad>"]
-
     raw_de_iter = iter(io.open(filepaths[0], encoding="utf8"))
     raw_en_iter = iter(io.open(filepaths[1], encoding="utf8"))
     data = []
 
     for (raw_de, raw_en) in zip(raw_de_iter, raw_en_iter):
+
         de_tensor_ = torch.tensor(
             [de_vocab["<bos>"]]
             + [de_vocab[token] for token in de_tokenizer(raw_de)]
@@ -36,16 +36,17 @@ def data_process(
             dtype=torch.long,
         )
 
-    temp_de = de_tensor_.shape[0]
-    add_de = len_de - temp_de
-    add_de = de_pad * torch.ones(add_de).long()
-    temp_en = en_tensor_.shape[0]
-    add_en = len_en - temp_en
-    add_en = en_pad * torch.ones(add_en).long()
-    de_tensor_ = torch.cat((de_tensor_, add_de), dim=0).to(device)
-    en_tensor_ = torch.cat((en_tensor_, add_en), dim=0).to(device)
-    data.append((de_tensor_, en_tensor_))
+        temp_de = de_tensor_.shape[0]
+        add_de = len_de - temp_de
+        add_de = de_pad * torch.ones(add_de).long()
+        temp_en = en_tensor_.shape[0]
+        add_en = len_en - temp_en
+        add_en = en_pad * torch.ones(add_en).long()
+        de_tensor_ = torch.cat((de_tensor_, add_de), dim=0).to(device)
+        en_tensor_ = torch.cat((en_tensor_, add_en), dim=0).to(device)
+        data.append((de_tensor_, en_tensor_))
     return data
+    
 
 import spacy
 from torchtext.data.utils import get_tokenizer

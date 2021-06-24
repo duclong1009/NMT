@@ -35,7 +35,7 @@ def main(arg):
     test_data = data_process(
         test_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer, 64, 64, device
     )
-
+    # print(len(val_data))
     PAD_IDX = de_vocab["<pad>"]
     BOS_IDX = de_vocab["<bos>"]
     EOS_IDX = de_vocab["<eos>"]
