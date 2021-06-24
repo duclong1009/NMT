@@ -13,6 +13,8 @@ from src.models import Encoder, Attention, Decoder, Seq2Seq
 import torch.optim as optim
 import time
 import math
+import torch
+import torch.nn as nn
 def main(arg):
     seed_all(arg.seed)
     train_filepaths = [arg.root_path + "train.de", arg.root_path + "train.en"]
@@ -25,8 +27,8 @@ def main(arg):
     en_tokenizer = get_tokenizer("spacy", language="en")
     de_vocab = build_vocab(train_filepaths[0], de_tokenizer)
     en_vocab = build_vocab(train_filepaths[1], en_tokenizer)
-    device = torch.device("cuda" if torch.cuda.is_availabel() else "cpu")
-    train_data = data_process(train_filepaths, 64, 64)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    train_data = data_process(train_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer, 64, 64, device)
     val_data = data_process(
         val_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer, 64, 64, device
     )
@@ -38,13 +40,13 @@ def main(arg):
     BOS_IDX = de_vocab["<bos>"]
     EOS_IDX = de_vocab["<eos>"]
     train_iter = DataLoader(
-        train_data, batch_size=arg.batch_size, shuffle=True, num_workers=arg.num_workers
+        train_data, batch_size=arg.batch_size, shuffle=True,
     )
     valid_iter = DataLoader(
-        val_data, batch_size=arg.batch_size, shuffle=False, num_workers=arg.num_workers
+        val_data, batch_size=arg.batch_size, shuffle=False
     )
     test_iter = DataLoader(
-        test_data, batch_size=arg.batch_size, shuffle=False, num_workers=arg.num_workers
+        test_data, batch_size=arg.batch_size, shuffle=False
     )
     input_dim = len(de_vocab)
     output_dim = len(en_vocab)
@@ -61,7 +63,7 @@ def main(arg):
         arg.dec_dropout,
         attn,
     ).to(device)
-    model = Seq2Seq(enc, dec, device).to(device)
+    model = Seq2Seq(enc, dec, device,de_vocab).to(device)
     model.apply(init_weights)
     optimizer = optim.AdamW(model.parameters(), lr=0.005)
     PAD_IDX = en_vocab.stoi["<pad>"]
@@ -84,10 +86,11 @@ def main(arg):
     test_loss = evaluate(model, test_iter, criterion)
     print(f"| Test Loss: {test_loss:.3f} | Test PPL: {math.exp(test_loss):7.3f} |")
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", type=int, default=1009)
-    parser.add_argument("root_path", type=str, default="./data/en-de/")
-    parser.add_argument("batch_size", type=int, default=32)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--root_path", type=str, default="./data/en-de/")
+    parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--enc_emb_dim", type=int, default=32)
@@ -95,9 +98,10 @@ if __name__ == "__main__":
     parser.add_argument("--enc_hid_dim", type=int, default=64)
     parser.add_argument("--dec_hid_dim", type=int, default=64)
     parser.add_argument("--attn_dim", type=int, default=8)
-    parser.add_argument("--enc_dropout", type=float, default=0.2)
-    parser.add_argument("--dec_dropout", type=float, default=0.2)
+    parser.add_argument("--enc_dropout", type=float, default=0.5)
+    parser.add_argument("--dec_dropout", type=float, default=0.5)
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--clip", type=float, default=1)
     arg = parser.parse_args()
+    print(torchtext.__version__)
     main(arg)

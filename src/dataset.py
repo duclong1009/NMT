@@ -1,14 +1,14 @@
 from collections import Counter
 from torchtext.vocab import Vocab
 import io
-
+import torch
 
 def build_vocab(filepath, tokenizer):
     counter = Counter()
     with io.open(filepath, encoding="utf8") as f:
         for string_ in f:
             counter.update(tokenizer(string_))
-    return Vocab(counter, specials=["<unk>", "<pad>", "<bos>", "<eos>"])
+    return Vocab(counter, specials=['<unk>', '<pad>', '<bos>', '<eos>'])
 
 
 def data_process(
@@ -46,3 +46,17 @@ def data_process(
     en_tensor_ = torch.cat((en_tensor_, add_en), dim=0).to(device)
     data.append((de_tensor_, en_tensor_))
     return data
+
+import spacy
+from torchtext.data.utils import get_tokenizer
+if __name__ == "__main__":
+  input_dir = "./data/en-de/"
+  train_filepaths = [input_dir + 'train.de',input_dir+'train.en']
+  val_filepaths = [input_dir + 'val.de',input_dir+'val.en']
+  test_filepaths = [input_dir + 'test_2016_flickr.de',input_dir+'test_2016_flickr.en']
+
+  de_tokenizer = get_tokenizer('spacy', language='de')
+  en_tokenizer = get_tokenizer('spacy', language='en')
+  de_vocab = build_vocab(train_filepaths[0], de_tokenizer)
+  en_vocab = build_vocab(train_filepaths[1], en_tokenizer)
+  print("Done")
