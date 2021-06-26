@@ -3,11 +3,14 @@ from torchtext.vocab import Vocab
 import io
 
 
-def build_vocab(filepath, tokenizer):
+def build_vocab(filepath, tokenizer, vietnamese=False):
     counter = Counter()
     with io.open(filepath, encoding="utf8") as f:
         for string_ in f:
-            counter.update(tokenizer(string_))
+            if vietnamese:
+                counter.update(tokenizer.tokenize(string_)[0])
+            else:
+                counter.update(tokenizer(string_))
     return Vocab(counter, specials=["<unk>", "<pad>", "<bos>", "<eos>"])
 
 
