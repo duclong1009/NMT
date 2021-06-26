@@ -29,7 +29,9 @@ def main(arg):
     de_vocab = build_vocab(train_filepaths[0], de_tokenizer)
     en_vocab = build_vocab(train_filepaths[1], en_tokenizer)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    train_data = data_process(train_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer, 64, 64, device)
+    train_data = data_process(
+        train_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer, 64, 64, device
+    )
     val_data = data_process(
         val_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer, 64, 64, device
     )

@@ -36,7 +36,7 @@ def evaluate(model: nn.Module,
     with torch.no_grad():
         for _, (src, trg) in enumerate(iterator):
             src = src.permute(1,0)
-            output = model(src, 64, 0) #turn off teacher forcing
+            output = model(src, 64) #turn off teacher forcing
             output = output[1:].view(-1, output.shape[-1])
             trg = trg.permute(1,0)
             trg = trg[1:].reshape(-1)

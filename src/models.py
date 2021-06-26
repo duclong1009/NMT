@@ -1,6 +1,6 @@
 import random
 from typing import Tuple
-
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -84,7 +84,7 @@ class Decoder(nn.Module):
         self.rnn = nn.GRU((enc_hid_dim * 2) + emb_dim, dec_hid_dim)
         self.out = nn.Linear(self.attention.attn_in + emb_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
-
+        
     def _weighted_encoder_rep(
         self, decoder_hidden: Tensor, encoder_outputs: Tensor
     ) -> Tensor:
@@ -119,20 +119,20 @@ class Decoder(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, encoder: nn.Module, decoder: nn.Module, device: torch.device):
+    def __init__(self, encoder: nn.Module, decoder: nn.Module, device: torch.device,de_vocab):
         super().__init__()
 
         self.encoder = encoder
         self.decoder = decoder
         self.device = device
-
-    def forward(self, src: Tensor, max_len: int, de_vocab) -> Tensor:
+        self.de_vocab = de_vocab
+    def forward(self, src: Tensor, max_len: int) -> Tensor:
 
         batch_size = src.shape[1]
         trg_vocab_size = self.decoder.output_dim
         outputs = torch.zeros(max_len, batch_size, trg_vocab_size).to(self.device)
         encoder_outputs, hidden = self.encoder(src)
-        output = de_vocab["<bos>"] * torch.ones(batch_size)
+        output = self.de_vocab["<bos>"] * torch.ones(batch_size)
         output = output.to(self.device).long()
 
         for t in range(1, max_len):
