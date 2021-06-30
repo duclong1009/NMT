@@ -16,6 +16,7 @@ def train(
     optimizer: optim.Optimizer,
     criterion: nn.Module,
     clip: float,
+    device
 ):
     model.train()
     epoch_loss = 0
@@ -34,7 +35,7 @@ def train(
 
 
 def evaluate(
-    model: nn.Module, iterator: torch.utils.data.DataLoader, criterion: nn.Module
+    model: nn.Module, iterator: torch.utils.data.DataLoader, criterion: nn.Module,device
 ):
     model.eval()
     epoch_loss = 0

@@ -2,8 +2,8 @@ import random
 from typing import Tuple
 import torch.nn as nn
 from torch import Tensor
-
-
+import torch
+import torch.nn.functional as F
 class Encoder(nn.Module):
     def __init__(
         self,

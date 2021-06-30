@@ -5,7 +5,7 @@ import spacy
 from src.utils import seed_all, init_weights, count_parameters, epoch_time
 import torchtext
 from torchtext.data.utils import get_tokenizer
-from src.dataset import build_vocab, data_process, generate_batch
+from src.dataset import build_vocab, data_process
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from src.trainer import train, evaluate
@@ -14,21 +14,21 @@ import torch.optim as optim
 import time
 import math
 import torch.nn as nn
-
+import torch
 
 def main(arg):
     seed_all(arg.seed)
     train_filepaths = [arg.root_path + "train.de", arg.root_path + "train.en"]
     val_filepaths = [arg.root_path + "val.de", arg.root_path + "val.en"]
     test_filepaths = [
-        arg.root_path + "test_2016_flickr.de",
-        arg.root_path + "test_2016_flickr.en",
+        arg.root_path + "test.de",
+        arg.root_path + "test.en",
     ]
     de_tokenizer = get_tokenizer("spacy", language="de")
     en_tokenizer = get_tokenizer("spacy", language="en")
     de_vocab = build_vocab(train_filepaths[0], de_tokenizer)
     en_vocab = build_vocab(train_filepaths[1], en_tokenizer)
-    device = torch.device("cuda" if torch.cuda.is_availabel() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_data = data_process(
         train_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer
     )
@@ -41,14 +41,32 @@ def main(arg):
     PAD_IDX = de_vocab["<pad>"]
     BOS_IDX = de_vocab["<bos>"]
     EOS_IDX = de_vocab["<eos>"]
+
+    def generate_batch(data_batch):
+      de_batch, en_batch = [], []
+      for (de_item, en_item) in data_batch:
+          de_batch.append(
+              torch.cat(
+                  [torch.tensor([BOS_IDX]), de_item, torch.tensor([EOS_IDX])], dim=0
+              )
+          )
+          en_batch.append(
+              torch.cat(
+                  [torch.tensor([BOS_IDX]), en_item, torch.tensor([EOS_IDX])], dim=0
+              )
+          )
+      de_batch = pad_sequence(de_batch, padding_value=PAD_IDX)
+      en_batch = pad_sequence(en_batch, padding_value=PAD_IDX)
+      return de_batch, en_batch
+
     train_iter = DataLoader(
-        train_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch
+        train_data, batch_size=arg.batch_size, shuffle=True, collate_fn=generate_batch
     )
     valid_iter = DataLoader(
-        val_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch
+        val_data, batch_size=arg.batch_size, shuffle=True, collate_fn=generate_batch
     )
     test_iter = DataLoader(
-        test_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch
+        test_data, batch_size=arg.batch_size, shuffle=True, collate_fn=generate_batch
     )
     input_dim = len(de_vocab)
     output_dim = len(en_vocab)
@@ -72,8 +90,8 @@ def main(arg):
     criterion = nn.CrossEntropyLoss(ignore_index=PAD_IDX)
     for epoch in range(arg.epochs):
         start_time = time.time()
-        train_loss = train(model, train_iter, optimizer, criterion, arg.clip)
-        valid_loss = evaluate(model, valid_iter, criterion)
+        train_loss = train(model, train_iter, optimizer, criterion, arg.clip,device)
+        valid_loss = evaluate(model, valid_iter, criterion,device)
         end_time = time.time()
         epoch_mins, epoch_secs = epoch_time(start_time, end_time)
 
@@ -92,8 +110,8 @@ def main(arg):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1009)
-    parser.add_argument("root_path", type=str, default="./data/en-de/")
-    parser.add_argument("batch_size", type=int, default=32)
+    parser.add_argument("--root_path", type=str, default="./data/en-de/")
+    parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--enc_emb_dim", type=int, default=32)
