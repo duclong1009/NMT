@@ -2,10 +2,10 @@ import argparse
 import numpy as np
 import pandas as pd
 import spacy
-from src.utils import seed_all, init_weights, count_parameters,epoch_time
+from src.utils import seed_all, init_weights, count_parameters, epoch_time
 import torchtext
 from torchtext.data.utils import get_tokenizer
-from src.dataset import build_vocab, data_process
+from src.dataset import build_vocab, data_process, generate_batch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from src.trainer import train, evaluate
@@ -13,6 +13,9 @@ from src.models import Encoder, Attention, Decoder, Seq2Seq
 import torch.optim as optim
 import time
 import math
+import torch.nn as nn
+
+
 def main(arg):
     seed_all(arg.seed)
     train_filepaths = [arg.root_path + "train.de", arg.root_path + "train.en"]
@@ -26,25 +29,26 @@ def main(arg):
     de_vocab = build_vocab(train_filepaths[0], de_tokenizer)
     en_vocab = build_vocab(train_filepaths[1], en_tokenizer)
     device = torch.device("cuda" if torch.cuda.is_availabel() else "cpu")
-    train_data = data_process(train_filepaths, 64, 64)
+    train_data = data_process(
+        train_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer
+    )
     val_data = data_process(
-        val_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer, 64, 64, device
+        val_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer
     )
     test_data = data_process(
-        test_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer, 64, 64, device
+        test_filepaths, de_vocab, en_vocab, de_tokenizer, en_tokenizer
     )
-
     PAD_IDX = de_vocab["<pad>"]
     BOS_IDX = de_vocab["<bos>"]
     EOS_IDX = de_vocab["<eos>"]
     train_iter = DataLoader(
-        train_data, batch_size=arg.batch_size, shuffle=True, num_workers=arg.num_workers
+        train_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch
     )
     valid_iter = DataLoader(
-        val_data, batch_size=arg.batch_size, shuffle=False, num_workers=arg.num_workers
+        val_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch
     )
     test_iter = DataLoader(
-        test_data, batch_size=arg.batch_size, shuffle=False, num_workers=arg.num_workers
+        test_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch
     )
     input_dim = len(de_vocab)
     output_dim = len(en_vocab)
@@ -83,6 +87,8 @@ def main(arg):
 
     test_loss = evaluate(model, test_iter, criterion)
     print(f"| Test Loss: {test_loss:.3f} | Test PPL: {math.exp(test_loss):7.3f} |")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1009)
